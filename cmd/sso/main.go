@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/lekan-pvp/sso/internal/app"
 	"github.com/lekan-pvp/sso/internal/config"
 	"github.com/lekan-pvp/sso/internal/lib/logger/handlers/slogpretty"
 )
@@ -23,9 +24,9 @@ func main() {
 		slog.Any("cfg", cfg),
 	)
 
-	// TODO: application initialization
+	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
 
-	// TODO: run grpc server
+	application.GRPCSrv.MustRun()
 }
 
 func setupLogger(env string) *slog.Logger {
