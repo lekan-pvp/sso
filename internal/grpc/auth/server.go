@@ -2,8 +2,11 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	ssov1 "github.com/lekan-pvp/protos/gen/go/sso"
+	"github.com/lekan-pvp/sso/internal/services/auth"
+	"github.com/lekan-pvp/sso/internal/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,7 +24,7 @@ type Auth interface {
 		ctx context.Context,
 		email string,
 		password string,
-	) (userID int, err error)
+	) (userID int64, err error)
 
 	IsAdmin(ctx context.Context, userID int64) (bool, error)
 }
@@ -49,7 +52,9 @@ func (s *serverAPI) Login(
 
 	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), int(req.AppId))
 	if err != nil {
-		// TODO: ...
+		if errors.Is(err, auth.ErrInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument, "invalid rmail or password")
+		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
@@ -68,7 +73,9 @@ func (s *serverAPI) Register(
 
 	userID, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.GetPassword())
 	if err != nil {
-		// TODO: ...
+		if errors.Is(err, storage.ErrUserExists) {
+			return nil, status.Error(codes.AlreadyExists, "user already exists")
+		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
@@ -87,7 +94,9 @@ func (s *serverAPI) IsAdmin(
 
 	isAdmin, err := s.auth.IsAdmin(ctx, req.GetUserId())
 	if err != nil {
-		// TODO: ...
+		if errors.Is(err, storage.ErrUserNotFound) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
